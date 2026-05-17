@@ -5,7 +5,6 @@ import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { Wordmark } from '../components/Wordmark'
 import { supabase } from '../lib/supabase'
 import { generateRoomCode } from '../lib/roomCode'
-import { parsePPTX } from '../lib/pptxParser'
 
 const PURPLE = 'oklch(0.55 0.21 285)'
 const BG = '#FAFAF7'
@@ -61,12 +60,8 @@ export default function Upload({ user }) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'application/pdf': ['.pdf'],
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
-      'application/vnd.ms-powerpoint': ['.ppt'],
-    },
-    maxSize: 200 * 1024 * 1024, // 200MB
+    accept: { 'application/pdf': ['.pdf'] },
+    maxSize: 200 * 1024 * 1024,
     multiple: false,
   })
 
@@ -76,8 +71,7 @@ export default function Upload({ user }) {
     setError(null)
 
     try {
-      const ext = file.name.split('.').pop().toLowerCase()
-      const fileType = ext === 'pdf' ? 'pdf' : 'pptx'
+      const fileType = 'pdf'
       const roomCode = generateRoomCode()
       const filePath = `${roomCode}/${file.name}`
 
@@ -95,30 +89,14 @@ export default function Upload({ user }) {
       setProgress(85)
       setStatus('processing')
 
-      // Get slide count
-      let slideCount = 1
-      let pptxSlides = null
-
-      if (fileType === 'pdf') {
-        const { data: urlData } = supabase.storage.from('presentations').getPublicUrl(filePath)
-        const lib = await import('pdfjs-dist')
-        lib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
-        const pdf = await lib.getDocument(urlData.publicUrl).promise
-        slideCount = pdf.numPages
-      } else {
-        // Parse PPTX
-        try {
-          pptxSlides = await parsePPTX(file)
-          slideCount = pptxSlides.length
-        } catch (e) {
-          slideCount = 1
-        }
-      }
+      // Get slide count from PDF
+      const { data: urlData } = supabase.storage.from('presentations').getPublicUrl(filePath)
+      const lib = await import('pdfjs-dist')
+      lib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
+      const pdf = await lib.getDocument(urlData.publicUrl).promise
+      const slideCount = pdf.numPages
 
       setProgress(95)
-
-      // Get public URL
-      const { data: urlData } = supabase.storage.from('presentations').getPublicUrl(filePath)
 
       // Create session in DB
       const sessionData = {
@@ -188,7 +166,7 @@ export default function Upload({ user }) {
             Subí tu presentación.
           </h1>
           <p style={{ fontSize: 15, color: MUTED, margin: '0 0 28px' }}>
-            Arrastrá tu archivo o hacé clic para seleccionarlo. Formatos: PPTX, PDF · Máx 200 MB.
+            Arrastrá tu PDF o hacé clic para seleccionarlo. Máx 200 MB.
           </p>
 
           {/* Dropzone */}
@@ -207,7 +185,7 @@ export default function Upload({ user }) {
             >
               <input {...getInputProps()} />
               <div style={{ width: 48, height: 60, background: BG, border: '1px solid ' + BORDER_STRONG, borderRadius: 4, margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Geist Mono', monospace", fontSize: 10, fontWeight: 600, color: MUTED }}>
-                PPT
+                PDF
               </div>
               {isDragActive ? (
                 <p style={{ fontSize: 15, fontWeight: 500, color: FG }}>Soltá el archivo acá</p>
