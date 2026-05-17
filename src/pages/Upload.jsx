@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDropzone } from 'react-dropzone'
+import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { Wordmark } from '../components/Wordmark'
 import { supabase } from '../lib/supabase'
 import { generateRoomCode } from '../lib/roomCode'
@@ -101,7 +102,7 @@ export default function Upload({ user }) {
       if (fileType === 'pdf') {
         const { data: urlData } = supabase.storage.from('presentations').getPublicUrl(filePath)
         const lib = await import('pdfjs-dist')
-        lib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${lib.version}/pdf.worker.min.js`
+        lib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
         const pdf = await lib.getDocument(urlData.publicUrl).promise
         slideCount = pdf.numPages
       } else {

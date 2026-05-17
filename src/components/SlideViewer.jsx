@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
 // Initialize pdf.js once globally
 let pdfjsLib = null
@@ -9,7 +10,7 @@ async function getPDFLib() {
   if (pdfLibLoading) return pdfLibLoading
 
   pdfLibLoading = import('pdfjs-dist').then((lib) => {
-    lib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${lib.version}/pdf.worker.min.js`
+    lib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
     pdfjsLib = lib
     return lib
   })
