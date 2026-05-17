@@ -37,6 +37,8 @@ function PDFPage({ url, pageNum, width, height, style }) {
   useEffect(() => {
     if (!url || !pageNum) return
     let cancelled = false
+    let renderTask = null
+    setError(null)
 
     async function render() {
       try {
@@ -58,46 +60,50 @@ function PDFPage({ url, pageNum, width, height, style }) {
         canvas.width = scaledVp.width
         canvas.height = scaledVp.height
 
-        await page.render({
+        renderTask = page.render({
           canvasContext: canvas.getContext('2d'),
           viewport: scaledVp,
-        }).promise
+        })
+        await renderTask.promise
+        renderTask = null
       } catch (e) {
         if (!cancelled) setError(e.message)
       }
     }
 
     render()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+      renderTask?.cancel()
+    }
   }, [url, pageNum, width, height])
 
-  if (error) {
-    return (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#fff',
-          color: '#9A9A9A',
-          fontFamily: "'Geist Mono', monospace",
-          fontSize: 12,
-          padding: 16,
-          textAlign: 'center',
-        }}
-      >
-        Error al renderizar slide
-      </div>
-    )
-  }
-
   return (
-    <canvas
-      ref={canvasRef}
-      style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', ...style }}
-    />
+    <>
+      {error && (
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#fff',
+            color: '#9A9A9A',
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: 12,
+            padding: 16,
+            textAlign: 'center',
+          }}
+        >
+          Error al renderizar slide
+        </div>
+      )}
+      <canvas
+        ref={canvasRef}
+        style={{ width: '100%', height: '100%', objectFit: 'contain', display: error ? 'none' : 'block', ...style }}
+      />
+    </>
   )
 }
 
